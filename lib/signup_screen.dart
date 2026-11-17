@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_course_app/Services/AuthServices/auth_services.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -10,6 +11,7 @@ class SignupScreen extends StatefulWidget {
 class _SignupScreenState extends State<SignupScreen> {
   TextEditingController emailCTRL = TextEditingController();
   TextEditingController passwordCTRL = TextEditingController();
+  bool loader = false;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -57,6 +59,7 @@ class _SignupScreenState extends State<SignupScreen> {
               ),
               TextFormField(
                 controller: passwordCTRL,
+                obscureText: true,
                 decoration: InputDecoration(
                   hintText: 'Password',
                   filled: true,
@@ -125,18 +128,34 @@ class _SignupScreenState extends State<SignupScreen> {
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: Text('Sign Up', style: TextStyle(fontSize: 12)),
-                ),
+                child: loader
+                    ? const Center(
+                        child: CircularProgressIndicator(color: Colors.orange),
+                      )
+                    : ElevatedButton(
+                        onPressed: () async {
+                          setState(() {
+                            loader = true;
+                          });
+                          await AuthServices.handleSignUp(
+                            emailCTRL.text.toString(),
+                            passwordCTRL.text.toString(),
+                            context,
+                          );
+                          setState(() {
+                            loader = false;
+                          });
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          backgroundColor: Colors.orange,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: Text('Sign Up', style: TextStyle(fontSize: 12)),
+                      ),
               ),
               SizedBox(height: 20),
             ],

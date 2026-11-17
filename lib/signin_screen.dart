@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_course_app/Services/AuthServices/forget_password_screen.dart';
+import 'package:page_transition/page_transition.dart';
 import 'signup_screen.dart';
+import 'Services/AuthServices/auth_services.dart';
 
 class SigninScreen extends StatefulWidget {
   const SigninScreen({super.key});
@@ -11,6 +14,7 @@ class SigninScreen extends StatefulWidget {
 class _SigninScreenState extends State<SigninScreen> {
   TextEditingController emailCTRL = TextEditingController();
   TextEditingController passwordCTRL = TextEditingController();
+  bool loader = false;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -58,6 +62,7 @@ class _SigninScreenState extends State<SigninScreen> {
               ),
               TextFormField(
                 controller: passwordCTRL,
+                obscureText: true,
                 decoration: InputDecoration(
                   hintText: 'Password',
                   filled: true,
@@ -85,13 +90,24 @@ class _SigninScreenState extends State<SigninScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Text(
-                    'Forget Password?',
-                    style: TextStyle(
-                      color: Colors.orange,
-                      fontSize: 14,
-                      decorationColor: Colors.orange,
-                      fontWeight: FontWeight.w700,
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        PageTransition(
+                          child: ForgetPasswordScreen(),
+                          type: PageTransitionType.fade,
+                        ),
+                      );
+                    },
+                    child: Text(
+                      'Forget Password?',
+                      style: TextStyle(
+                        color: Colors.orange,
+                        fontSize: 14,
+                        decorationColor: Colors.orange,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],
@@ -100,7 +116,9 @@ class _SigninScreenState extends State<SigninScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      AuthServices.signInWithGoogle();
+                    },
                     style: ElevatedButton.styleFrom(
                       padding: EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
@@ -126,18 +144,34 @@ class _SigninScreenState extends State<SigninScreen> {
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: Text('Sign In', style: TextStyle(fontSize: 12)),
-                ),
+                child: loader
+                    ? Center(
+                        child: CircularProgressIndicator(color: Colors.orange),
+                      )
+                    : ElevatedButton(
+                        onPressed: () async {
+                          setState(() {
+                            loader = true;
+                          });
+                          await AuthServices.handleSignIn(
+                            emailCTRL.text,
+                            passwordCTRL.text,
+                            context,
+                          );
+                          setState(() {
+                            loader = false;
+                          });
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          backgroundColor: Colors.orange,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: Text('Sign In', style: TextStyle(fontSize: 12)),
+                      ),
               ),
               SizedBox(height: 20),
               Row(
