@@ -1,0 +1,218 @@
+import 'dart:developer';
+import 'dart:io';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
+class CreatePollScreen extends StatefulWidget {
+  final String currentUserId;
+  const CreatePollScreen({super.key, required this.currentUserId});
+
+  @override
+  State<CreatePollScreen> createState() => _CreatePollScreenState();
+}
+
+class _CreatePollScreenState extends State<CreatePollScreen> {
+  final titleController = TextEditingController();
+  List<TextEditingController> optionNameControllers = [
+    TextEditingController(),
+    TextEditingController(),
+    TextEditingController(),
+  ];
+  final List<File?> optionImages = [null, null, null];
+  final ImagePicker _imagePicker = ImagePicker();
+  bool loader = false;
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Create Poll'),
+        centerTitle: true,
+      ),
+      body: Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Container(
+              margin: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(5),
+                border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.2),
+                    spreadRadius: 1,
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: TextFormField(
+                controller: titleController,
+                decoration: InputDecoration(labelText: "Poll Title"),
+              ),
+            ),
+            for (int i = 0; i < 3; i++)
+              Container(
+                margin: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.2),
+                      spreadRadius: 1,
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: optionNameControllers[i],
+                        decoration:
+                            InputDecoration(labelText: 'Option ${i + 1} Name'),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 15,
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        pickimage(i);
+                      },
+                      child: optionImages[i] != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.file(optionImages[i]!,
+                                  width: 50, height: 50, fit: BoxFit.cover),
+                            )
+                          : Container(
+                              decoration: BoxDecoration(
+                                color: Colors.grey[300],
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              height: 50,
+                              width: 50,
+                              child: Icon(Icons.image),
+                            ),
+                    )
+                  ],
+                ),
+              ),
+            SizedBox(height: 15),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orangeAccent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10)),
+              onPressed: () {
+                submitPoll(widget.currentUserId, context);
+              },
+              child: Text(
+                "Create Poll",
+                style: TextStyle(fontSize: 14, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> pickimage(int i) async {
+    final pickedFile =
+        await _imagePicker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      optionImages[i] = File(pickedFile.path);
+      setState(() {});
+    }
+  }
+
+  Future<void> submitPoll(String userId, BuildContext context) async {
+    if (!validateForm(context)) return;
+    setState(() {
+      loader = true;
+    });
+    try {
+      final pollDoc = FirebaseFirestore.instance.collection('polls').doc();
+      final pollId = pollDoc.id;
+      final List<Map<String, dynamic>> options = [];
+      for (int i = 0; i < 3; i++) {
+        final imageUrl = await uploadImage(optionImages[i]!, pollId, i);
+        if (imageUrl == null) {
+          throw Exception("Image upload failed");
+        }
+        options.add({
+          'name': optionNameControllers[i].text,
+          'imageUrl': imageUrl,
+          'votes': 0
+        });
+      }
+      await pollDoc.set({
+        'pollId': pollId,
+        'title': titleController.text,
+        "options": options,
+        "createdAt": FieldValue.serverTimestamp(),
+        "creatorId": userId,
+        "total_votes": 0
+      });
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Poll Created Successfully!")));
+    } catch (e) {
+      log("Error creating poll: $e");
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Failed to create Poll: $e")));
+    } finally {
+      setState(() {
+        loader = false;
+      });
+    }
+  }
+
+  bool validateForm(BuildContext context) {
+    if (titleController.text.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Title is required")));
+      return false;
+    }
+
+    for (int i = 0; i < optionNameControllers.length; i++) {
+      if (optionNameControllers[i].text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Option ${i + 1} name is required")));
+        return false;
+      }
+    }
+
+    if (optionImages.contains(null)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Please select images for all options")));
+      return false;
+    }
+
+    return true;
+  }
+}
+
+Future<String?> uploadImage(File optionImage, String pollId, int i) async {
+  try {
+    final storageRef = FirebaseStorage.instance
+        .ref()
+        .child('poll/$pollId/${i.toString()}_$pollId.jpg');
+    final uploadImage = await storageRef.putFile(optionImage);
+    return await uploadImage.ref.getDownloadURL();
+  } catch (e) {
+    log("Error uploading Image:$e");
+    return null;
+  }
+}

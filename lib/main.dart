@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_course_app/Services/Home%20Screen/home_show_poll_screen.dart';
+import 'package:flutter_course_app/home_screen.dart';
 import 'package:flutter_course_app/signin_screen.dart';
 import 'firebase_options.dart';
 
@@ -23,7 +24,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
       debugShowCheckedModeBanner: false,
-      home: HomeShowPollScreen(),
+      home: SigninScreen(),
     );
   }
 }

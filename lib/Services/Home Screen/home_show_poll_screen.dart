@@ -1,4 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_course_app/Services/Home%20Screen/create_poll_screen.dart';
+import 'package:page_transition/page_transition.dart';
 
 class HomeShowPollScreen extends StatefulWidget {
   const HomeShowPollScreen({super.key});
@@ -8,6 +11,7 @@ class HomeShowPollScreen extends StatefulWidget {
 }
 
 class _HomeShowPollScreenState extends State<HomeShowPollScreen> {
+  final String _currentUserId = FirebaseAuth.instance.currentUser!.uid;
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -38,7 +42,15 @@ class _HomeShowPollScreenState extends State<HomeShowPollScreen> {
           Container(child: Text('All Poll')),
         ]),
         floatingActionButton: FloatingActionButton(
-          onPressed: () {},
+          onPressed: () {
+            Navigator.push(
+              context,
+              PageTransition(
+                type: PageTransitionType.fade,
+                child: CreatePollScreen(currentUserId: _currentUserId),
+              ),
+            );
+          },
           child: const Icon(Icons.add),
         ),
       ),
