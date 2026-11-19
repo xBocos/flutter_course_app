@@ -108,21 +108,24 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                 ),
               ),
             SizedBox(height: 15),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orangeAccent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+            loader
+                ? Center(child: CircularProgressIndicator(color: Colors.orange))
+                : ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orangeAccent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 16, vertical: 10)),
+                    onPressed: () {
+                      submitPoll(widget.currentUserId, context);
+                    },
+                    child: Text(
+                      "Create Poll",
+                      style: TextStyle(fontSize: 14, color: Colors.white),
+                    ),
                   ),
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10)),
-              onPressed: () {
-                submitPoll(widget.currentUserId, context);
-              },
-              child: Text(
-                "Create Poll",
-                style: TextStyle(fontSize: 14, color: Colors.white),
-              ),
-            ),
           ],
         ),
       ),
@@ -191,28 +194,25 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("Option ${i + 1} name is required")));
         return false;
+      } else if (optionImages.contains(null)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Please select images for all options")));
+        return false;
       }
     }
-
-    if (optionImages.contains(null)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Please select images for all options")));
-      return false;
-    }
-
     return true;
   }
-}
 
-Future<String?> uploadImage(File optionImage, String pollId, int i) async {
-  try {
-    final storageRef = FirebaseStorage.instance
-        .ref()
-        .child('poll/$pollId/${i.toString()}_$pollId.jpg');
-    final uploadImage = await storageRef.putFile(optionImage);
-    return await uploadImage.ref.getDownloadURL();
-  } catch (e) {
-    log("Error uploading Image:$e");
-    return null;
+  Future<String?> uploadImage(File optionImage, String pollId, int i) async {
+    try {
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('polls/$pollId/${i.toString()}_$pollId.jpg');
+      final uploadImage = await storageRef.putFile(optionImage);
+      return await uploadImage.ref.getDownloadURL();
+    } catch (e) {
+      log("Error uploading Image:$e");
+      return null;
+    }
   }
 }
