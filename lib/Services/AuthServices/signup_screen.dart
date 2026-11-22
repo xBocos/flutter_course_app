@@ -12,6 +12,8 @@ class _SignupScreenState extends State<SignupScreen> {
   TextEditingController emailCTRL = TextEditingController();
   TextEditingController passwordCTRL = TextEditingController();
   bool loader = false;
+  bool _obscurePassword = true;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -59,7 +61,7 @@ class _SignupScreenState extends State<SignupScreen> {
               ),
               TextFormField(
                 controller: passwordCTRL,
-                obscureText: true,
+                obscureText: _obscurePassword,
                 decoration: InputDecoration(
                   hintText: 'Password',
                   filled: true,
@@ -72,14 +74,19 @@ class _SignupScreenState extends State<SignupScreen> {
                     color: Colors.black,
                   ),
                   suffixIcon: GestureDetector(
-                    onTap: () {},
+                    onTap: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
                     child: Icon(
-                      Icons.remove_red_eye_outlined,
+                      _obscurePassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.remove_red_eye_outlined,
                       color: Colors.black,
                     ),
                   ),
                 ),
-                keyboardType: TextInputType.emailAddress,
               ),
               SizedBox(
                 height: 10,
@@ -142,9 +149,11 @@ class _SignupScreenState extends State<SignupScreen> {
                             passwordCTRL.text.toString(),
                             context,
                           );
-                          setState(() {
-                            loader = false;
-                          });
+                          if (mounted) {
+                            setState(() {
+                              loader = false;
+                            });
+                          }
                         },
                         style: ElevatedButton.styleFrom(
                           padding: EdgeInsets.symmetric(vertical: 16),

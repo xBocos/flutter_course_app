@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_course_app/Provider/auth_provider.dart';
 import 'package:flutter_course_app/Services/AuthServices/forget_password_screen.dart';
 import 'package:page_transition/page_transition.dart';
 import 'signup_screen.dart';
-import 'Services/AuthServices/auth_services.dart';
+import 'auth_services.dart';
+import 'package:provider/provider.dart';
 
 class SigninScreen extends StatefulWidget {
   const SigninScreen({super.key});
@@ -14,7 +16,12 @@ class SigninScreen extends StatefulWidget {
 class _SigninScreenState extends State<SigninScreen> {
   TextEditingController emailCTRL = TextEditingController();
   TextEditingController passwordCTRL = TextEditingController();
-  bool loader = false;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -60,30 +67,36 @@ class _SigninScreenState extends State<SigninScreen> {
               SizedBox(
                 height: 20,
               ),
-              TextFormField(
-                controller: passwordCTRL,
-                obscureText: true,
-                decoration: InputDecoration(
-                  hintText: 'Password',
-                  filled: true,
-                  fillColor: Colors.grey.withOpacity(0.25),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none),
-                  prefixIcon: Icon(
-                    Icons.lock,
-                    color: Colors.black,
-                  ),
-                  suffixIcon: GestureDetector(
-                    onTap: () {},
-                    child: Icon(
-                      Icons.remove_red_eye_outlined,
+              Consumer<AuthProvider>(builder: (_, authProvider, child) {
+                return TextFormField(
+                  controller: passwordCTRL,
+                  obscureText: authProvider.showPassword,
+                  decoration: InputDecoration(
+                    hintText: 'Password',
+                    filled: true,
+                    fillColor: Colors.grey.withOpacity(0.25),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none),
+                    prefixIcon: Icon(
+                      Icons.lock,
                       color: Colors.black,
                     ),
+                    suffixIcon: GestureDetector(
+                      onTap: () {
+                        authProvider
+                            .setShowPassword(!authProvider.showPassword);
+                      },
+                      child: Icon(
+                        authProvider.showPassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.remove_red_eye_outlined,
+                        color: Colors.black,
+                      ),
+                    ),
                   ),
-                ),
-                keyboardType: TextInputType.emailAddress,
-              ),
+                );
+              }),
               SizedBox(
                 height: 10,
               ),
@@ -142,37 +155,40 @@ class _SigninScreenState extends State<SigninScreen> {
                     )),
               ),
               const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: loader
-                    ? Center(
-                        child: CircularProgressIndicator(color: Colors.orange),
-                      )
-                    : ElevatedButton(
-                        onPressed: () async {
-                          setState(() {
-                            loader = true;
-                          });
-                          await AuthServices.handleSignIn(
-                            emailCTRL.text,
-                            passwordCTRL.text,
-                            context,
-                          );
-                          setState(() {
-                            loader = false;
-                          });
-                        },
-                        style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+              Consumer<AuthProvider>(builder: (_, authProvider, child) {
+                return SizedBox(
+                  width: double.infinity,
+                  child: authProvider.isLoading
+                      ? Center(
+                          child:
+                              CircularProgressIndicator(color: Colors.orange),
+                        )
+                      : ElevatedButton(
+                          onPressed: () async {
+                            authProvider.setIsLoading(!authProvider.isLoading);
+                            await AuthServices.handleSignIn(
+                              emailCTRL.text,
+                              passwordCTRL.text,
+                              context,
+                            );
+                            if (mounted) {
+                              authProvider
+                                  .setIsLoading(!authProvider.isLoading);
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            backgroundColor: Colors.orange,
+                            foregroundColor: Colors.white,
                           ),
-                          backgroundColor: Colors.orange,
-                          foregroundColor: Colors.white,
+                          child:
+                              Text('Sign In', style: TextStyle(fontSize: 12)),
                         ),
-                        child: Text('Sign In', style: TextStyle(fontSize: 12)),
-                      ),
-              ),
+                );
+              }),
               SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,

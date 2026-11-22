@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter_course_app/Services/Home%20Screen/home_show_poll_screen.dart';
-import 'package:flutter_course_app/home_screen.dart';
-import 'package:flutter_course_app/signin_screen.dart';
+import 'package:flutter_course_app/Provider/auth_provider.dart';
+import 'package:flutter_course_app/Provider/poll_provider.dart';
+import 'package:flutter_course_app/Services/Onboarding/splash_screen.dart';
+import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -18,13 +19,19 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Mi Aplicación',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => PollProvider())
+      ],
+      child: MaterialApp(
+        title: 'Mi Aplicación',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        ),
+        debugShowCheckedModeBanner: false,
+        home: SplashScreen(),
       ),
-      debugShowCheckedModeBanner: false,
-      home: SigninScreen(),
     );
   }
 }

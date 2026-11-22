@@ -1,9 +1,12 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_course_app/Services/Home%20Screen/create_poll_screen.dart';
 import 'package:flutter_course_app/Services/Home%20Screen/edit_poll_screen.dart';
+import 'package:flutter_course_app/Services/AuthServices/signin_screen.dart';
 import 'package:page_transition/page_transition.dart';
 
 class HomeShowPollScreen extends StatefulWidget {
@@ -15,6 +18,7 @@ class HomeShowPollScreen extends StatefulWidget {
 
 class _HomeShowPollScreenState extends State<HomeShowPollScreen> {
   final String _currentUserId = FirebaseAuth.instance.currentUser!.uid;
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -23,15 +27,29 @@ class _HomeShowPollScreenState extends State<HomeShowPollScreen> {
         appBar: AppBar(
           title: const Text("Create Poll"),
           centerTitle: true,
-          actions: [IconButton(onPressed: () {}, icon: Icon(Icons.settings))],
+          actions: [
+            IconButton(
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+                if (!context.mounted) return;
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SigninScreen()),
+                  (route) => false,
+                );
+              },
+              icon: const Icon(Icons.settings),
+            ),
+          ],
           bottom: const TabBar(
             indicatorSize: TabBarIndicatorSize.tab,
             indicatorColor: Colors.orange,
             unselectedLabelColor: Colors.black,
             labelStyle: TextStyle(
-                color: Colors.orange,
-                fontSize: 18,
-                fontWeight: FontWeight.w600),
+              color: Colors.orange,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
             tabs: [
               Tab(text: "All"),
               Tab(text: "Posted"),
@@ -40,7 +58,11 @@ class _HomeShowPollScreenState extends State<HomeShowPollScreen> {
           ),
         ),
         body: TabBarView(
-          children: [_buildAllPolls(), _buildPostedPolls(), _buildVotedPolls()],
+          children: [
+            _buildAllPolls(),
+            _buildPostedPolls(),
+            _buildVotedPolls(),
+          ],
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () {
@@ -58,6 +80,52 @@ class _HomeShowPollScreenState extends State<HomeShowPollScreen> {
     );
   }
 
+  Widget _buildOptionImage(String imageData) {
+    if (imageData.isEmpty) {
+      return const Icon(
+        Icons.image_not_supported,
+        size: 50,
+        color: Colors.grey,
+      );
+    }
+    if (imageData.startsWith('http')) {
+      return Image.network(
+        imageData,
+        height: 50,
+        width: 50,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return const Icon(
+            Icons.image_not_supported,
+            size: 50,
+            color: Colors.grey,
+          );
+        },
+      );
+    }
+    try {
+      return Image.memory(
+        base64Decode(imageData),
+        height: 50,
+        width: 50,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return const Icon(
+            Icons.image_not_supported,
+            size: 50,
+            color: Colors.grey,
+          );
+        },
+      );
+    } catch (_) {
+      return const Icon(
+        Icons.image_not_supported,
+        size: 50,
+        color: Colors.grey,
+      );
+    }
+  }
+
   Widget _buildPostedPolls() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
@@ -66,7 +134,7 @@ class _HomeShowPollScreenState extends State<HomeShowPollScreen> {
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return Center(
+          return const Center(
             child: CircularProgressIndicator(
               color: Colors.orange,
             ),
@@ -74,7 +142,7 @@ class _HomeShowPollScreenState extends State<HomeShowPollScreen> {
         }
         final polls = snapshot.data!.docs;
         return polls.isEmpty
-            ? Center(
+            ? const Center(
                 child: Text(
                   'No Posted Poll Available',
                   style: TextStyle(
@@ -89,7 +157,8 @@ class _HomeShowPollScreenState extends State<HomeShowPollScreen> {
                 itemBuilder: (context, index) {
                   final poll = polls[index];
                   return _buildPollCard(poll, showUserVote: false);
-                });
+                },
+              );
       },
     );
   }
@@ -102,7 +171,7 @@ class _HomeShowPollScreenState extends State<HomeShowPollScreen> {
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return Center(
+          return const Center(
             child: CircularProgressIndicator(
               color: Colors.orange,
             ),
@@ -110,7 +179,7 @@ class _HomeShowPollScreenState extends State<HomeShowPollScreen> {
         }
         final polls = snapshot.data!.docs;
         return polls.isEmpty
-            ? Center(
+            ? const Center(
                 child: Text(
                   'No Poll Available',
                   style: TextStyle(
@@ -125,7 +194,8 @@ class _HomeShowPollScreenState extends State<HomeShowPollScreen> {
                 itemBuilder: (context, index) {
                   final poll = polls[index];
                   return _buildPollCard(poll, showUserVote: true);
-                });
+                },
+              );
       },
     );
   }
@@ -135,20 +205,22 @@ class _HomeShowPollScreenState extends State<HomeShowPollScreen> {
     final options = data['options'] as List<dynamic>;
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Container(
         decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(15),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.grey.withOpacity(0.3),
-                  blurRadius: 10,
-                  spreadRadius: 2,
-                  offset: Offset(0, 5))
-            ]),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.3),
+              blurRadius: 10,
+              spreadRadius: 2,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
         child: Padding(
-          padding: EdgeInsets.all(15),
+          padding: const EdgeInsets.all(15),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -159,7 +231,7 @@ class _HomeShowPollScreenState extends State<HomeShowPollScreen> {
                     child: Text(
                       data['title'],
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.black87,
@@ -173,56 +245,45 @@ class _HomeShowPollScreenState extends State<HomeShowPollScreen> {
                 thickness: 1,
                 height: 20,
               ),
-              SizedBox(
-                height: 10,
-              ),
+              const SizedBox(height: 10),
               for (var i = 0; i < options.length; i++) ...[
                 Container(
-                  margin: EdgeInsets.symmetric(),
-                  padding: EdgeInsets.all(12),
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.withOpacity(0.2)),
-                      boxShadow: [
-                        BoxShadow(
-                            color: Colors.grey.withOpacity(0.2),
-                            blurRadius: 6,
-                            spreadRadius: 1,
-                            offset: Offset(0, 3))
-                      ]),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.2),
+                        blurRadius: 6,
+                        spreadRadius: 1,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(10),
-                        child: Image.network(
-                          options[i]['imageUrl'],
-                          height: 50,
-                          width: 50,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Icon(Icons.image_not_supported,
-                                size: 50, color: Colors.grey);
-                          },
-                        ),
+                        child: _buildOptionImage(options[i]['imageUrl'] ?? ''),
                       ),
-                      SizedBox(
-                        width: 15,
-                      ),
+                      const SizedBox(width: 15),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               options[i]['name'],
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
                                 color: Colors.black87,
                               ),
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             LinearProgressIndicator(
                               value: (options[i]['votes'] ?? 0.0) / 10,
                               color: Colors.orange,
@@ -233,7 +294,7 @@ class _HomeShowPollScreenState extends State<HomeShowPollScreen> {
                                 (options[i]['voters'] as List).contains(
                                   _currentUserId,
                                 ))
-                              Padding(
+                              const Padding(
                                 padding: EdgeInsets.only(top: 4),
                                 child: Text(
                                   'You voted',
@@ -247,34 +308,35 @@ class _HomeShowPollScreenState extends State<HomeShowPollScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(
-                        width: 15,
-                      ),
+                      const SizedBox(width: 15),
                       if (showUserVote)
                         ElevatedButton(
-                            onPressed: () {
-                              handleVote(poll.id, i, context, _currentUserId);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orangeAccent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
-                              ),
+                          onPressed: () {
+                            handleVote(poll.id, i, context, _currentUserId);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orangeAccent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Text('vote',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.white,
-                                )))
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                          ),
+                          child: const Text(
+                            'vote',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
               ],
-              SizedBox(height: 5),
+              const SizedBox(height: 5),
               if (!showUserVote)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
@@ -282,28 +344,31 @@ class _HomeShowPollScreenState extends State<HomeShowPollScreen> {
                     TextButton.icon(
                       onPressed: () {
                         Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    EditPollScreen(poll: poll)));
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EditPollScreen(poll: poll),
+                          ),
+                        );
                       },
-                      icon: Icon(Icons.edit, color: Colors.orange),
-                      label:
-                          Text('Edit', style: TextStyle(color: Colors.orange)),
+                      icon: const Icon(Icons.edit, color: Colors.orange),
+                      label: const Text(
+                        'Edit',
+                        style: TextStyle(color: Colors.orange),
+                      ),
                     ),
-                    SizedBox(
-                      width: 5,
-                    ),
+                    const SizedBox(width: 5),
                     TextButton.icon(
                       onPressed: () {
                         deletePoll(poll.id, context);
                       },
-                      icon: Icon(Icons.delete, color: Colors.red),
-                      label:
-                          Text('Delete', style: TextStyle(color: Colors.red)),
-                    )
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      label: const Text(
+                        'Delete',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
                   ],
-                )
+                ),
             ],
           ),
         ),
@@ -326,7 +391,6 @@ class _HomeShowPollScreenState extends State<HomeShowPollScreen> {
 
         final votedPolls = polls.where((poll) {
           final options = poll['options'] as List<dynamic>;
-          // Check if the current user is in any of the 'voters' lists
           for (var option in options) {
             if (option['voters'] != null &&
                 (option['voters'] as List).contains(_currentUserId)) {
@@ -367,8 +431,8 @@ class _HomeShowPollScreenState extends State<HomeShowPollScreen> {
       if (pollDoc.exists) {
         List<dynamic> options = pollDoc['options'] ?? [];
         for (var option in options) {
-          if (option['imageUrl'] != null) {
-            String imageUrl = option['imageUrl'];
+          String imageUrl = option['imageUrl'] ?? '';
+          if (imageUrl.startsWith('http')) {
             String? filepath = Uri.decodeFull(
               Uri.parse(imageUrl).pathSegments.lastWhere(
                     (element) => element.contains('poll'),
@@ -384,13 +448,15 @@ class _HomeShowPollScreenState extends State<HomeShowPollScreen> {
             .collection('polls')
             .doc(pollId)
             .delete();
+        if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Poll and associated images deleted successfully'),
           ),
         );
       }
     } catch (e) {
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error deleting poll $e'),
@@ -411,36 +477,44 @@ class _HomeShowPollScreenState extends State<HomeShowPollScreen> {
       final pollSnapshot = await pollDoc.get();
       if (pollSnapshot.exists) {
         final data = pollSnapshot.data() as Map<String, dynamic>;
-        final totalVotes = data['total_votes'];
+        final totalVotes = data['total_votes'] ?? 0;
         final options = data['options'] as List<dynamic>;
 
         for (var option in options) {
           if (option['voters'] != null &&
               (option['voters'] as List).contains(currentUserId)) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('You have alredy voted')));
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('You have already voted')),
+            );
+            return;
           }
-          return;
         }
-        final voters = options[optionIndex]['voters'] ?? [];
+
+        final voters = List<dynamic>.from(options[optionIndex]['voters'] ?? []);
         voters.add(currentUserId);
         options[optionIndex]['voters'] = voters;
 
         options[optionIndex]['votes'] =
             (options[optionIndex]['votes'] ?? 0) + 1;
-        await pollDoc.update({'options': options});
-        await pollDoc.update({"total_votes": totalVotes + 1});
+
+        await pollDoc.update({
+          'options': options,
+          'total_votes': totalVotes + 1,
+        });
+
+        if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Vote submitted successfully'),
           ),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to submit vote $e')));
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to submit vote $e')),
+      );
     }
   }
 }

@@ -99,4 +99,13 @@ class AuthServices {
       showSnackBar("Error in Reset Password ${e.toString()}", context);
     }
   }
+
+  static Future<bool> userLogin() async {
+    final User? user = await FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      return true;
+    } else {
+      return false;
+    }
+  }
 }
